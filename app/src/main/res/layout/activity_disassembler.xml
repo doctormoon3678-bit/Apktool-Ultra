@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/primary_dark"
+        app:titleTextColor="@color/green_accent"
+        app:navigationIcon="@drawable/ic_back" />
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:indeterminate="true"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/elfInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:fontFamily="monospace"
+        android:textSize="11sp"
+        android:textColor="@color/green_accent"
+        android:background="@color/disasm_background" />
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="4dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/tabSections"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Sections"
+                android:textSize="11sp"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_marginEnd="4dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/tabSymbols"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Symbols"
+                android:textSize="11sp"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_marginEnd="4dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/tabDisasm"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Disasm"
+                android:textSize="11sp"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_marginEnd="4dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/tabHex"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Hex"
+                android:textSize="11sp"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_marginEnd="4dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/tabStrings"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Strings"
+                android:textSize="11sp"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_marginEnd="4dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/tabHeaders"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Headers"
+                android:textSize="11sp"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/contentList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/disasmText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:fontFamily="monospace"
+                android:textSize="11sp"
+                android:textColor="@color/green_accent"
+                android:background="@color/disasm_background"
+                android:textIsSelectable="true"
+                android:visibility="gone" />
+        </ScrollView>
+    </FrameLayout>
+</LinearLayout>
