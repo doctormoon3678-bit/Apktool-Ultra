@@ -56,6 +56,22 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Search"
             android:tint="@color/text_primary" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="28dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginHorizontal="4dp"
+            android:background="@color/line_number" />
+
+        <ImageButton
+            android:id="@+id/btnAi"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_ai"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Claude AI"
+            android:tint="@color/accent" />
     </LinearLayout>
 
     <HorizontalScrollView

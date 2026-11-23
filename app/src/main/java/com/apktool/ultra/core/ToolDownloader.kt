@@ -40,9 +40,9 @@ class ToolDownloader {
         ),
         APKSIGNER(
             "ApkSigner",
-            "apksigner.jar",
-            "APK 서명 도구 (Google)",
-            "https://dl.google.com/dl/android/maven2/com/android/tools/build/apksigner/8.2.0/apksigner-8.2.0.jar",
+            "uber-apk-signer.jar",
+            "APK 서명 도구 (uber-apk-signer)",
+            "https://github.com/nickolay/uber-apk-signer/releases/download/1.3.0/uber-apk-signer-1.3.0.jar",
             "~1 MB"
         ),
         ZIPALIGN(
@@ -55,8 +55,8 @@ class ToolDownloader {
         JAVA_RUNTIME(
             "Java Runtime",
             "java",
-            "Java Runtime Environment (Android용 OpenJDK)",
-            "https://github.com/nickolay/termux-openjdk/releases/download/v17.0.1/openjdk-17.0.1-aarch64.tar.gz",
+            "Java Runtime Environment (OpenJDK 17 aarch64)",
+            "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%2B9/OpenJDK17U-jre_aarch64_linux_hotspot_17.0.9_9.tar.gz",
             "~45 MB"
         );
 
@@ -86,24 +86,79 @@ class ToolDownloader {
             val outputFile = File(ApktoolUltraApp.toolsDir, tool.fileName)
             outputFile.parentFile?.mkdirs()
 
-            val url = URL(tool.downloadUrl)
-            val connection = url.openConnection() as HttpURLConnection
-            connection.connectTimeout = 30000
-            connection.readTimeout = 30000
-            connection.requestMethod = "GET"
-            connection.setRequestProperty("User-Agent", "ApktoolUltra/1.0")
-
-            if (connection.responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
-                connection.responseCode == HttpURLConnection.HTTP_MOVED_PERM) {
-                val newUrl = connection.getHeaderField("Location")
-                connection.disconnect()
-                return@withContext downloadFromUrl(URL(newUrl), outputFile, tool, onProgress)
+            val tempFile = File(outputFile.absolutePath + ".tmp")
+            val success = downloadWithRedirects(tool.downloadUrl, tempFile, tool, onProgress)
+            if (!success) {
+                tempFile.delete()
+                return@withContext false
             }
 
-            if (connection.responseCode != HttpURLConnection.HTTP_OK) {
-                onProgress(DownloadProgress(tool, 0, 0, false, "HTTP ${connection.responseCode}"))
+            if (tool.downloadUrl.endsWith(".tar.gz") || tool.downloadUrl.endsWith(".zip")) {
+                extractArchive(tempFile, tool)
+                tempFile.delete()
+            } else {
+                tempFile.renameTo(outputFile)
+            }
+
+            if (tool.fileName.endsWith(".jar")) {
+                // JAR files are ready to use
+            } else if (!tool.fileName.contains(".")) {
+                outputFile.setExecutable(true)
+            }
+
+            onProgress(DownloadProgress(tool, 1, 1, true))
+            true
+        } catch (e: Exception) {
+            Log.e("ToolDownloader", "Download failed for ${tool.displayName}", e)
+            onProgress(DownloadProgress(tool, 0, 0, false, e.message))
+            false
+        }
+    }
+
+    private fun downloadWithRedirects(
+        urlStr: String,
+        outputFile: File,
+        tool: Tool,
+        onProgress: (DownloadProgress) -> Unit,
+        maxRedirects: Int = 5
+    ): Boolean {
+        var currentUrl = urlStr
+        var redirectCount = 0
+
+        while (redirectCount < maxRedirects) {
+            val url = URL(currentUrl)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.connectTimeout = 30000
+            connection.readTimeout = 60000
+            connection.instanceFollowRedirects = false
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("User-Agent", "ApktoolUltra/1.0")
+            connection.setRequestProperty("Accept", "application/octet-stream")
+
+            val responseCode = connection.responseCode
+
+            if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
+                responseCode == HttpURLConnection.HTTP_MOVED_PERM ||
+                responseCode == HttpURLConnection.HTTP_SEE_OTHER ||
+                responseCode == 307 || responseCode == 308) {
+                val newUrl = connection.getHeaderField("Location")
                 connection.disconnect()
-                return@withContext false
+                if (newUrl == null) {
+                    onProgress(DownloadProgress(tool, 0, 0, false, "Redirect without Location header"))
+                    return false
+                }
+                currentUrl = if (newUrl.startsWith("http")) newUrl else {
+                    val base = URL(currentUrl)
+                    URL(base, newUrl).toString()
+                }
+                redirectCount++
+                continue
+            }
+
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                onProgress(DownloadProgress(tool, 0, 0, false, "HTTP $responseCode"))
+                connection.disconnect()
+                return false
             }
 
             val totalBytes = connection.contentLengthLong
@@ -121,64 +176,18 @@ class ToolDownloader {
                 }
             }
             connection.disconnect()
-
-            if (tool.fileName.endsWith(".jar")) {
-                // JAR files are ready to use
-            } else if (!tool.fileName.contains(".")) {
-                outputFile.setExecutable(true)
-            }
-
-            if (tool.downloadUrl.endsWith(".tar.gz") || tool.downloadUrl.endsWith(".zip")) {
-                extractArchive(outputFile, tool)
-            }
-
-            onProgress(DownloadProgress(tool, downloaded, totalBytes, true))
-            true
-        } catch (e: Exception) {
-            Log.e("ToolDownloader", "Download failed for ${tool.displayName}", e)
-            onProgress(DownloadProgress(tool, 0, 0, false, e.message))
-            false
-        }
-    }
-
-    private fun downloadFromUrl(
-        url: URL,
-        outputFile: File,
-        tool: Tool,
-        onProgress: (DownloadProgress) -> Unit
-    ): Boolean {
-        val connection = url.openConnection() as HttpURLConnection
-        connection.connectTimeout = 30000
-        connection.readTimeout = 30000
-
-        if (connection.responseCode != HttpURLConnection.HTTP_OK) {
-            connection.disconnect()
-            return false
+            return true
         }
 
-        val totalBytes = connection.contentLengthLong
-        var downloaded = 0L
-
-        connection.inputStream.use { input ->
-            FileOutputStream(outputFile).use { output ->
-                val buffer = ByteArray(8192)
-                var read: Int
-                while (input.read(buffer).also { read = it } != -1) {
-                    output.write(buffer, 0, read)
-                    downloaded += read
-                    onProgress(DownloadProgress(tool, downloaded, totalBytes, false))
-                }
-            }
-        }
-        connection.disconnect()
-        return true
+        onProgress(DownloadProgress(tool, 0, 0, false, "Too many redirects"))
+        return false
     }
 
     private fun extractArchive(archiveFile: File, tool: Tool) {
         val extractDir = File(ApktoolUltraApp.toolsDir, tool.fileName + "_extracted")
         extractDir.mkdirs()
 
-        if (archiveFile.name.endsWith(".zip")) {
+        if (archiveFile.name.endsWith(".zip") || tool.downloadUrl.endsWith(".zip")) {
             val zipFile = java.util.zip.ZipFile(archiveFile)
             val entries = zipFile.entries()
             while (entries.hasMoreElements()) {
@@ -196,6 +205,25 @@ class ToolDownloader {
                 }
             }
             zipFile.close()
+        } else if (tool.downloadUrl.endsWith(".tar.gz")) {
+            extractTarGz(archiveFile, extractDir)
+        }
+    }
+
+    private fun extractTarGz(archiveFile: File, extractDir: File) {
+        try {
+            val process = ProcessBuilder("tar", "xzf", archiveFile.absolutePath, "-C", extractDir.absolutePath)
+                .redirectErrorStream(true)
+                .start()
+            process.waitFor()
+        } catch (e: Exception) {
+            Log.e("ToolDownloader", "tar extract failed, trying manual", e)
+            val gzipInput = java.util.zip.GZIPInputStream(FileInputStream(archiveFile))
+            val outFile = File(extractDir, archiveFile.name.removeSuffix(".gz"))
+            FileOutputStream(outFile).use { output ->
+                gzipInput.copyTo(output)
+            }
+            gzipInput.close()
         }
     }
 

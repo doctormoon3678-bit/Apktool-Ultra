@@ -72,6 +72,7 @@ class MainActivity : AppCompatActivity() {
             MenuItem("Archive Viewer", "APK 압축 내용 보기/편집", R.drawable.ic_archive, "archive"),
             MenuItem("Disassembler", "Ghidra - Native Lib 분석", R.drawable.ic_disassemble, "disassemble"),
             MenuItem("Sign APK", "APK 서명 도구", R.drawable.ic_sign, "sign"),
+            MenuItem("Claude Code", "AI 코드 수정 도우미", R.drawable.ic_ai, "claude"),
             MenuItem("Tool Manager", "AAPT/Java 다운로드", R.drawable.ic_tools, "tools"),
             MenuItem("Recent Projects", "최근 작업 프로젝트", R.drawable.ic_recent, "recent")
         )
@@ -99,6 +100,9 @@ class MainActivity : AppCompatActivity() {
             "sign" -> {
                 pendingAction = action
                 pickSignApk.launch("application/vnd.android.package-archive")
+            }
+            "claude" -> {
+                Toast.makeText(this, "코드 에디터에서 AI 버튼을 사용하세요", Toast.LENGTH_LONG).show()
             }
             "tools" -> {
                 startActivity(Intent(this, ToolManagerActivity::class.java))
