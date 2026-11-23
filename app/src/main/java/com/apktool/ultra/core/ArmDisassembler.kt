@@ -352,6 +352,16 @@ class ArmDisassembler {
         }
     }
 
+    private fun readInt32LE(data: ByteArray, offset: Int): Int =
+        (data[offset].toInt() and 0xFF) or
+        ((data[offset + 1].toInt() and 0xFF) shl 8) or
+        ((data[offset + 2].toInt() and 0xFF) shl 16) or
+        ((data[offset + 3].toInt() and 0xFF) shl 24)
+
+    private fun readInt16LE(data: ByteArray, offset: Int): Int =
+        (data[offset].toInt() and 0xFF) or
+        ((data[offset + 1].toInt() and 0xFF) shl 8)
+
     private fun isThumb32(hw: Int): Boolean = (hw and 0xE000) == 0xE000 && (hw and 0x1800) != 0
 
     private fun regName(r: Int): String = when (r) {
@@ -403,12 +413,12 @@ class ArmDisassembler {
                         val rd = parseReg(regs[0])
                         val imm = regs[1].removePrefix("#").trim().toIntOrNull() ?: return null
                         if (rd < 0 || imm < 0 || imm > 255) return null
-                        intToBytes(0xE3A00000 or (rd shl 12) or imm)
+                        intToBytes(0xE3A00000.toInt() or (rd shl 12) or imm)
                     } else null
                 }
                 parts == "bx" -> {
                     val rm = parseReg(operands.trim())
-                    if (rm < 0) null else intToBytes(0xE12FFF10 or rm)
+                    if (rm < 0) null else intToBytes(0xE12FFF10.toInt() or rm)
                 }
                 else -> null
             }
